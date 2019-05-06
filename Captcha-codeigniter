@@ -1,0 +1,112 @@
+<?php
+// Copyright By ntix corp | Developpeur DKMJA ************************************************************************************************************//
+// Ce captcha permet la verification anti-robot . tres efficace pour la protection contre les robot pirate du web*****************************
+//En effet  ce captcha fait en image empeche une majoriter de robot lecteur de s'emprendre à vous et votre base de données*************
+// Nous ne garantissons pas une casie invulnérabilité concernant notre captcha mais peux vous proteger contre certaine attaques
+	require_once APPPATH . '/libraries/REST_Controller.php';
+	require_once APPPATH . '/libraries/JWT.php';
+
+	use \Firebase\JWT\JWT;
+	// use namespace
+	use Restserver\Libraries\REST_Controller;
+
+class Captchantixci extends REST_Controller {
+	
+		
+	public function __construct() {
+			 parent::__construct();
+		header ("Content-type: image/png");//transformation de l'entête en image de type png
+    } 
+    
+    
+    
+    
+	public function Captcha_get(){
+		if($this->get('id')== 'ntixcicaptcha'){//verifions l'autorisation d'obtension du captcha par get
+				
+				$im = ImageCreate(200,50); // creation du cadre du captcha 
+				$dossier = 'images_captcha'; // dossier de rangement 
+				 if(!is_dir($dossier)){//verification de l'existance  du dossier de rangement 
+					mkdir($dossier);  //creation du dossier de rangement si celui ci n'existe pas
+				 }
+				$lettres = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9');// lettre et carractère du tri
+				
+				$alea = mt_rand(4,8);// selection aleatoire du nombre de carractère du texte captcha 
+				$recp=NULL;
+				$result = NULL;
+				$string = NULL;
+				$str = NULL;
+		for($i=0; $i<$alea; $i++){ // boucle de formation des mots deux mot du captcha
+				$result= $alea/2;// division du nombre de carractere du grand mot par 2
+				$recp = array_rand($lettres); //tri pour recuperation d'un emplacement précis dans le tableau de lettre alphanumerique
+				$recp = $lettres[$recp];//recuperation de la lettre en fonction de son emplecement recupérer précedement 
+					
+				if($result >= $i){ // recuperation et creation du deuxieme mot
+					$string .= $recp;
+				}else{
+					$str .= $recp; 
+				}
+		}
+				$string = $string." ".$str;//concatenation des deux mots créés 
+				$gris[1] = ImageColorAllocate ($im, 110, 110, 110);//couleurs gris 
+				$gris[9] = imagecolorallocate($im, 255, 128, 0);//couleurs gris
+				$gris[8] = ImageColorAllocate ($im, 0, 0, 0); //couleurs noir
+				$gris[0] = ImageColorAllocate ($im, 255, 255, 255); //couleurs blanc     
+				$gris[2] = ImageColorAllocate ($im, 130, 130, 130); //couleurs gris
+				$gris[3] = ImageColorAllocate ($im, 150, 150, 150);//couleurs gris 
+				$gris[4] = ImageColorAllocate ($im, 170, 170, 170); //couleurs gris
+				$gris[5] = ImageColorAllocate ($im, 190, 190, 190); //couleurs gris
+				$gris[6] = ImageColorAllocate ($im, 210, 210, 210); //couleurs gris
+				$gris[7] = ImageColorAllocate ($im, 230, 230, 230);//couleurs gris
+				
+				$px     = mt_rand(20,100); // detection de la position x de l'ecriture sur l'image
+			if($px == 0 || $px == ""){
+					$px = 50;
+			}else{
+					$px = $px;
+			}
+				$width = mt_rand(1,30);// detection de la position Y de l'ecriture sur l'image
+			if($width == 0 || $width == ""){
+					$width = 30;
+			}else{
+					$width = $width;
+			}
+			$rand = mt_rand(111111111,999999999).time();//creation du nom de l'image créée
+				imagestring($im, 5, $px, $width, $string, $gris[7]);// ecriture sur l'image 
+				imagestring($im, 5, $px, $width + 2, $string, $gris[7]);//doublé l'ecriture pour  rendre l'ecriture flou
+				imagecolortransparent($im, $gris[1]);//rendre  le background transparent
+				imagepng($im,"$dossier/$rand.png");//creation du bloc d'ecriture et enregistrement sous forme d'image
+				$image_gerer = array_rand(array('1','2','3','4','5','6','7'));//selection aleatoire d'image
+			if($image_gerer == 0){
+				$image_gerer = 1;
+			}
+				$source = imagecreatefrompng("$dossier/$rand.png"); //recuperation de l'image source precedement enregistré
+				$destination = imagecreatefrompng("$dossier/img_system/".$image_gerer.".png"); //recuperation de la photo a mettre en arriere plan 
+				$posi = array_rand(array('20','30','40','50','-40','-50','60','-60','10'));// determination aleatoire de la rotation de l'image source sur l'image de fond
+				$source = imagerotate($source, $posi, 1, 0);//rotation 
+				$largeur_source = imagesx($source);// comme le dit le nom de la variable  : detection de la largeur de l'image source
+				$hauteur_source = imagesy($source);// hauteur de la source 
+				$largeur_destination = imagesx($destination);//largeur de l'image de background
+				$hauteur_destination = imagesy($destination);//hauteur de l'image de background
+				$destination_x = ($largeur_destination/2) - ($largeur_source/2);// emplacement de l'image source sur l'axe x 
+				$destination_y =  ($hauteur_destination/2) - ($hauteur_source/2);// emplacement de l'image source sur l'axe Y
+				imagecopymerge($destination, $source, $destination_x, $destination_y, 0, 0, $largeur_source, $hauteur_source, 40);//fusion des deux image pour la formation final du captcha 
+				imagepng($destination,"$dossier/$rand.png");//enregistrement du captcha
+				//imagejpeg($destination);
+				$captch['lien'] = "$dossier/$rand.png"; 
+		    	$captch['code'] = $string;
+				//destruction des image dans la memoire 
+				imagedestroy($im);
+				imagedestroy($destination);
+				//retour des information 
+				echo $captch;
+			
+		}else{
+			//erreur d'autorisation 
+				$captch['message'] = "erreur! vous n'avez pas l'autorisation pour obtenir le Captcha ntixci"; 
+		    	$captch['code'] = 403;
+			    $this->set_response($captch, REST_Controller::HTTP_NOT_FOUND);
+		}
+	}
+	
+}
